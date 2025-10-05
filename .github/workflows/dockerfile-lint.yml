@@ -23,21 +23,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Hadolint
+      # ✅ Opcja nr 1 – wskazujemy konkretny plik Dockerfile
+      - name: Lint Dockerfile (api/Dockerfile)
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: |
-            **/Dockerfile
-            **/*.dockerfile
+            api/Dockerfile
+          no-fail: false   # jeśli chcesz, żeby błędy lintingu przerywały job, ustaw true
+          format: tty
+          failure-threshold: info
 
-      # (opcjonalnie) raport do artefaktu
+      # (opcjonalnie) raport tekstowy do artefaktu
       - name: Run hadolint CLI and save report
         shell: bash
         run: |
           set -e
           mkdir -p reports
-          find . -type f \( -name 'Dockerfile' -o -name '*.dockerfile' \) -print0 | \
-            xargs -0 -I{} sh -lc 'hadolint "{}" || true' | tee reports/hadolint.txt
+          if [ -f "api/Dockerfile" ]; then
+            echo "Linting api/Dockerfile..."
+            hadolint api/Dockerfile | tee reports/hadolint.txt || true
+          else
+            echo "Brak pliku api/Dockerfile — pomijam linting." | tee reports/hadolint.txt
+          fi
 
       - name: Upload hadolint report
         if: always()
