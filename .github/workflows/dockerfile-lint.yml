@@ -1,0 +1,48 @@
+name: Dockerfile Lint (Hadolint)
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**/Dockerfile'
+      - '**/*.dockerfile'
+  push:
+    branches: [ main ]
+    paths:
+      - '**/Dockerfile'
+      - '**/*.dockerfile'
+  workflow_dispatch: {}
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: |
+            **/Dockerfile
+            **/*.dockerfile
+
+      # (opcjonalnie) raport do artefaktu
+      - name: Run hadolint CLI and save report
+        shell: bash
+        run: |
+          set -e
+          mkdir -p reports
+          find . -type f \( -name 'Dockerfile' -o -name '*.dockerfile' \) -print0 | \
+            xargs -0 -I{} sh -lc 'hadolint "{}" || true' | tee reports/hadolint.txt
+
+      - name: Upload hadolint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hadolint-report
+          path: reports/hadolint.txt
+          if-no-files-found: warn

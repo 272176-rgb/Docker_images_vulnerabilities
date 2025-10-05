@@ -1,0 +1,40 @@
+name: Clair DB nightly refresh
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # codziennie 03:17 UTC
+  workflow_dispatch: {}
+
+jobs:
+  refresh-db:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate matcher.db (Clair v4)
+        uses: quay/clair-action@main
+        with:
+          mode: update
+          db-file: matcher.db
+
+      - name: Date key
+        id: date
+        run: echo "ymd=$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Save matcher.db to cache (dated key)
+        uses: actions/cache/save@v4
+        with:
+          path: matcher.db
+          key: matcher-db-${{ runner.os }}-${{ steps.date.outputs.ymd }}
+
+      - name: Upload matcher.db artifact (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: matcher-db-${{ steps.date.outputs.ymd }}
+          path: matcher.db
+          if-no-files-found: error
