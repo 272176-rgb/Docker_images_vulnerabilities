@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Vuln mini — Dashboard{% endblock %}
+{% block content %}
+<section class="cards">
+  <div class="card">
+    <div class="card-title">Runs</div>
+    <div class="card-value">{{ counts.runs }}</div>
+    <div class="card-sub">Latest: {{ counts.latest or '—' }}</div>
+  </div>
+  {% for sev, cnt in counts.by_severity.items() %}
+  <div class="card">
+    <div class="card-title">{{ sev|capitalize }}</div>
+    <div class="card-value">{{ cnt }}</div>
+  </div>
+  {% endfor %}
+</section>
+
+<h2>Ostatnie uruchomienia</h2>
+<table>
+  <thead>
+    <tr><th>Data</th><th>Repo</th><th>Branch</th><th>Image</th><th>Run</th></tr>
+  </thead>
+  <tbody>
+  {% for r in runs %}
+    <tr>
+      <td>{{ r.created_at }}</td>
+      <td>{{ r.repo }}</td>
+      <td>{{ r.branch }}</td>
+      <td>{{ r.image }}</td>
+      <td><a href="{{ url_for('run_page', run_id=r.id) }}">{{ r.id[:8] }}…</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Brak danych</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,20 +1,14 @@
-# Wybierz obraz bazowy Pythona
-FROM python:3.9-slim
+FROM python:3.12-slim
 
-# Ustaw katalog roboczy w kontenerze
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
-
-# Skopiuj plik requirements.txt do katalogu roboczego
-COPY requirements.txt /app/
-
-# Zainstaluj zależności
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Skopiuj wszystkie pliki projektu do katalogu roboczego
-COPY . /app/
+COPY app /app/app
 
-# Określ port, na którym aplikacja będzie nasłuchiwać
-EXPOSE 8080
+EXPOSE 8000
+CMD ["waitress-serve", "--host=0.0.0.0", "--port=8000", "app.app:app"]
 
-# Określ komendę uruchamiającą aplikację
-CMD ["python", "app.py"]
