@@ -1,7 +1,7 @@
 import os, json
 from flask import Flask, request, render_template, redirect, url_for, abort
 from flask_cors import CORS
-from db import init_db, create_run, upsert_component, insert_finding, list_runs, list_findings, dashboard_counts
+from app.db import init_db, create_run, upsert_component, insert_finding, list_runs, list_findings, dashboard_counts
 
 APP_TOKEN = os.getenv("APP_TOKEN", "changeme-token")
 
