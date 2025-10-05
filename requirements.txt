@@ -7,3 +7,4 @@ docker==5.0.0
 PyYAML==6.0.2
 defusedxml==0.7.1
 waitress==2.0.0
+Werkzeug==2.0.3
