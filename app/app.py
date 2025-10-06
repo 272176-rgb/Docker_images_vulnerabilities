@@ -1,7 +1,7 @@
 import os, json
-from flask import Flask, request, render_template, jsonify, abort
+from flask import Flask, request, render_template, abort
 from flask_cors import CORS
-from app.db import (
+from .db import (
     init_db, create_run, upsert_component, insert_finding,
     list_runs, list_findings, dashboard_counts
 )
@@ -17,55 +17,41 @@ def _init():
 
 def require_token():
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        abort(401)
-    if auth.split(" ", 1)[1] != APP_TOKEN:
-        abort(403)
+    if not auth.startswith("Bearer "): abort(401)
+    if auth.split(" ",1)[1] != APP_TOKEN: abort(403)
 
 def norm_sev(s):
-    if not s:
-        return None
-    m = {
-        "critical": "Critical",
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low",
-        "negligible": "Negligible",
-        "unknown": "Unknown",
-    }
+    if not s: return None
+    m = {"critical":"Critical","high":"High","medium":"Medium","low":"Low","negligible":"Negligible","unknown":"Unknown"}
     return m.get(s.lower(), s)
 
 def cvss_from_trivy(v):
     cvss = v.get("CVSS") or {}
-    for k in ("nvd", "ghsa", "redhat"):
+    for k in ("nvd","ghsa","redhat"):
         sc = cvss.get(k) or {}
-        for key in ("V3Score", "V2Score", "Score"):
+        for key in ("V3Score","V2Score","Score"):
             if sc.get(key) is not None:
-                try:
-                    return float(sc[key])
-                except Exception:
-                    pass
+                try: return float(sc[key])
+                except: pass
     return None
 
 def cvss_from_grype(v):
     scores = v.get("cvss") or []
     if scores:
-        try:
-            return float(scores[0].get("baseScore"))
-        except Exception:
-            return None
+        try: return float(scores[0].get("baseScore"))
+        except: return None
     return None
 
 # ---------- HTML ----------
 @app.get("/")
 def index():
-    counts = dashboard_counts() or {}
-    runs = list_runs(limit=20, offset=0) or []
+    counts = dashboard_counts()
+    runs = list_runs(limit=20, offset=0)
     return render_template("index.html", counts=counts, runs=runs)
 
 @app.get("/runs/<run_id>")
 def run_page(run_id):
-    items = list_findings(run_id) or []
+    items = list_findings(run_id)
     return render_template("run.html", run_id=run_id, findings=items)
 
 # ---------- API: ingest ----------
@@ -81,8 +67,7 @@ def ingest_trivy():
     run_id = create_run(repo, commit, branch, image)
 
     for res in (data.get("Results") or []):
-        vulns = res.get("Vulnerabilities") or []
-        for v in vulns:
+        for v in (res.get("Vulnerabilities") or []):
             comp = upsert_component(v.get("PURL"), v.get("PkgName"), v.get("InstalledVersion"))
             insert_finding(
                 run_id=run_id,
@@ -94,7 +79,7 @@ def ingest_trivy():
                 fix_version=v.get("FixedVersion"),
                 component_id=comp,
                 layer=(v.get("Layer") or {}).get("Digest"),
-                raw=v,
+                raw=v
             )
     return {"ok": True, "run_id": run_id}
 
@@ -123,7 +108,7 @@ def ingest_grype():
             fix_version=(v.get("fix") or {}).get("version"),
             component_id=comp,
             layer=None,
-            raw=m,
+            raw=m
         )
     return {"ok": True, "run_id": run_id}
 
@@ -136,32 +121,5 @@ def api_runs():
 def api_run_findings(run_id):
     return {"findings": [dict(r) for r in list_findings(run_id)]}
 
-# ---------- API: dashboard (auto-refresh) ----------
-@app.get("/api/dashboard")
-def api_dashboard():
-    counts = dashboard_counts() or {}
-    runs = list_runs(limit=20, offset=0) or []
-    # zadbaj o serializowalność
-    payload = {
-        "counts": {
-            "runs": counts.get("runs", 0),
-            "latest": counts.get("latest"),
-            "by_severity": counts.get("by_severity", {}),
-        },
-        "runs": [
-            {
-                "id": str(r.get("id")),
-                "repo": r.get("repo"),
-                "image": r.get("image"),
-                "branch": r.get("branch"),
-                "created_at": r.get("created_at"),
-                "tool": r.get("tool"),
-            }
-            for r in runs
-        ],
-    }
-    return jsonify(payload)
-
 if __name__ == "__main__":
-    # dev only; w Dockerze użyjemy waitress
     app.run(host="0.0.0.0", port=8000, debug=True)

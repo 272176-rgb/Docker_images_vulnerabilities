@@ -1,25 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Run {{ run_id }}{% endblock %}
+{% block title %}Run {{ run_id[:8] }} — Vuln mini{% endblock %}
+{% block head_extra %}
+<meta http-equiv="refresh" content="30">
+{% endblock %}
 {% block content %}
-<h2>Run: {{ run_id }}</h2>
+<h2>Run {{ run_id }}</h2>
+
 <table>
   <thead>
-  <tr>
-    <th>Source</th><th>Severity</th><th>Vuln</th><th>Component</th><th>Fix</th><th>CVSS</th>
-  </tr>
+    <tr>
+      <th>Source</th>
+      <th>Vuln ID</th>
+      <th>Severity</th>
+      <th>CVSS</th>
+      <th>Component</th>
+      <th>Fix</th>
+      <th>Description</th>
+    </tr>
   </thead>
   <tbody>
   {% for f in findings %}
     <tr>
       <td>{{ f.source }}</td>
-      <td class="sev {{ (f.severity or 'unknown')|lower }}">{{ f.severity or 'unknown' }}</td>
       <td>{{ f.vuln_id }}</td>
-      <td>{{ f.comp_name or '—' }} {{ f.comp_version or '' }}</td>
-      <td>{{ f.fix_version or '—' }}</td>
+      <td class="sev sev-{{ (f.severity or 'Unknown')|lower }}">{{ f.severity or 'Unknown' }}</td>
       <td>{{ f.cvss_score if f.cvss_score is not none else '—' }}</td>
+      <td>{{ f.component_name or '—' }} {% if f.component_version %}({{ f.component_version }}){% endif %}</td>
+      <td>{{ f.fix_version or '—' }}</td>
+      <td>{{ f.description or '—' }}</td>
     </tr>
   {% else %}
-    <tr><td colspan="6">Brak wyników</td></tr>
+    <tr><td colspan="7">Brak wyników</td></tr>
   {% endfor %}
   </tbody>
 </table>
