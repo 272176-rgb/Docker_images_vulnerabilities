@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Vuln mini — Dashboard{% endblock %}
-{% block head_extra %}
-<meta http-equiv="refresh" content="15">
-{% endblock %}
 {% block content %}
-<section class="cards">
+<section class="cards" id="cards">
   <div class="card">
     <div class="card-title">Runs</div>
-    <div class="card-value">{{ counts.runs }}</div>
-    <div class="card-sub">Latest: {{ counts.latest or '—' }}</div>
+    <div class="card-value" id="count-runs">{{ counts.runs }}</div>
+    <div class="card-sub">Latest: <span id="count-latest">{{ counts.latest or '—' }}</span></div>
   </div>
   {% for sev, cnt in counts.by_severity.items() %}
-  <div class="card">
-    <div class="card-title">{{ sev }}</div>
+  <div class="card" data-sev="{{ sev|lower }}">
+    <div class="card-title">{{ sev|capitalize }}</div>
     <div class="card-value">{{ cnt }}</div>
   </div>
   {% endfor %}
@@ -23,7 +20,7 @@
   <thead>
     <tr><th>Data</th><th>Repo</th><th>Branch</th><th>Image</th><th>Run</th></tr>
   </thead>
-  <tbody>
+  <tbody id="runs-body">
   {% for r in runs %}
     <tr>
       <td>{{ r.created_at }}</td>
@@ -37,4 +34,65 @@
   {% endfor %}
   </tbody>
 </table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function refreshDashboard() {
+  try {
+    const res = await fetch('/api/dashboard', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // liczniki top
+    document.getElementById('count-runs').textContent = data.counts?.runs ?? 0;
+    document.getElementById('count-latest').textContent = data.counts?.latest ?? '—';
+
+    // karty severity – przebuduj sekcję (prościej niż szukać/patchować)
+    const cards = document.getElementById('cards');
+    const baseCards = `
+      <div class="card">
+        <div class="card-title">Runs</div>
+        <div class="card-value" id="count-runs">${data.counts?.runs ?? 0}</div>
+        <div class="card-sub">Latest: <span id="count-latest">${data.counts?.latest ?? '—'}</span></div>
+      </div>`;
+    const sev = data.counts?.by_severity || {};
+    const sevKeys = Object.keys(sev);
+    const sevCards = sevKeys.map(k => `
+      <div class="card" data-sev="${k.toLowerCase()}">
+        <div class="card-title">${k.charAt(0).toUpperCase()+k.slice(1).toLowerCase()}</div>
+        <div class="card-value">${sev[k]}</div>
+      </div>
+    `).join('');
+    cards.innerHTML = baseCards + sevCards;
+
+    // tabela runów
+    const tbody = document.getElementById('runs-body');
+    tbody.innerHTML = '';
+    const runs = data.runs || [];
+    if (runs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">Brak danych</td></tr>';
+    } else {
+      runs.forEach(r => {
+        const tr = document.createElement('tr');
+        const runShort = (r.id || '').slice(0, 8) + '…';
+        tr.innerHTML = `
+          <td>${r.created_at ?? ''}</td>
+          <td>${r.repo ?? ''}</td>
+          <td>${r.branch ?? ''}</td>
+          <td>${r.image ?? ''}</td>
+          <td><a href="/runs/${r.id}">${runShort}</a></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (e) {
+    console.error('Auto-refresh error:', e);
+  }
+}
+
+// pierwszy load + co 30s
+refreshDashboard();
+setInterval(refreshDashboard, 30000);
+</script>
 {% endblock %}

@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   web:
     build:
@@ -7,13 +6,17 @@ services:
       dockerfile: Dockerfile
     container_name: vuln-dashboard
     environment:
-      APP_TOKEN: changeme-token       # USTAW w prod na losowy długi token
+      APP_TOKEN: changeme-token
       DB_PATH: /data/vuln.sqlite
       FLASK_ENV: production
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/data                  # baza będzie w ./data/vuln.sqlite
+      - data:/data              # <— named volume
     restart: unless-stopped
     command: >
-      waitress-serve --host 0.0.0.0 --port 8000 app.app:app
+      waitress-serve --host 0.0.0.0 --port 8000 app:app
+
+volumes:
+  data: {}
+

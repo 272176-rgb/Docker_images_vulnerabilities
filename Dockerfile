@@ -4,18 +4,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
-
-# narzędzia do budowania (zwykle niepotrzebne, ale bezpiecznie mieć)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl && \
-    rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt .
-RUN python -m pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel
 
-# skopiuj kod aplikacji
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY app /app/app
 
 EXPOSE 8000
-# komenda startowa jest w docker-compose.yml (waitress-serve)
+CMD ["waitress-serve", "--host=0.0.0.0", "--port=8000", "app.app:app"]
+
