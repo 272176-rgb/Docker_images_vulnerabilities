@@ -13,7 +13,8 @@ services:
       - data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/"]
+      # nie wymagamy curl/wget w obrazie — używamy Pythona
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  urllib.request.urlopen('http://localhost:8000/', timeout=3)\n  sys.exit(0)\nexcept Exception:\n  sys.exit(1)\nPY"]
       interval: 15s
       timeout: 5s
       retries: 5
