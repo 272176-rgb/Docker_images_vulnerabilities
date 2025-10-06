@@ -1,24 +1,22 @@
 version: "3.9"
-
 services:
   web:
     build:
-      context: .               # buduje obraz z bieżącego katalogu
-      dockerfile: Dockerfile   # upewnij się, że masz plik Dockerfile w katalogu głównym
+      context: .
+      dockerfile: Dockerfile
     container_name: vuln-dashboard
     environment:
-      APP_TOKEN: changeme-token         # token autoryzacji (zmień na silny w prod)
-      DB_PATH: /data/vuln.sqlite        # ścieżka bazy danych wewnątrz kontenera
-      FLASK_ENV: production             # wyłącza tryb debug
+      APP_TOKEN: changeme-token
+      DB_PATH: /data/vuln.sqlite
+      FLASK_ENV: production
     ports:
-      - "8000:8000"                     # wystawia aplikację na localhost:8000
+      - "8000:8000"
     volumes:
-      - ./data:/data                    # lokalny folder data -> /data w kontenerze
-    restart: unless-stopped             # automatycznie wznawia po restarcie
+      - data:/data              # <— named volume
+    restart: unless-stopped
     command: >
       waitress-serve --host 0.0.0.0 --port 8000 app:app
 
 volumes:
-  data:
-    driver: local
+  data: {}
 
