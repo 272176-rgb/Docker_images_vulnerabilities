@@ -9,6 +9,7 @@ from app.db import (
 APP_TOKEN = os.getenv("APP_TOKEN", "changeme-token")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.url_map.strict_slashes = False
 CORS(app)
 
 @app.before_first_request
@@ -67,6 +68,11 @@ def index():
 def run_page(run_id):
     items = list_findings(run_id) or []
     return render_template("run.html", run_id=run_id, findings=items)
+
+@app.get("/__routes")
+def __routes():
+    return jsonify({"routes": [r.rule for r in app.url_map.iter_rules()]})
+
 
 # ---------- API: ingest ----------
 @app.post("/ingest/trivy")
